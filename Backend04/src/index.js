@@ -1,13 +1,19 @@
-import mongoose from "mongoose";
-import express from "express";
-import { DB_NAME } from "./constants.js";
 import dotenv from "dotenv";
 dotenv.config();
+import { app } from "./app.js";
 const Port = process.env.PORT;
-const app = express();
 import connectDB from "./db/index.js";
 
-// connectDB();
+connectDB()
+  .then((result) => {
+    const Port = process.env.PORT;
+    app.listen(Port || 8000, () => {
+      console.log(`Server is running at port ${Port}`);
+    });
+  })
+  .catch((err) => {
+    console.log("Mongo Db Connection Faild", err);
+});
 
 // ////DataBase Connection
 // (async () => {
@@ -30,3 +36,4 @@ import connectDB from "./db/index.js";
 //     throw error;
 //   }
 // })();
+  
