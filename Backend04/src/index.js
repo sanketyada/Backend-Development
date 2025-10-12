@@ -1,8 +1,12 @@
-import dotenv from "dotenv";
-dotenv.config();
+//yaha se projet start hota hai aur aar db connected ho gya to 
+//browser se request lene ko taiyaar ho jata hai
+import dotenv from 'dotenv';
+dotenv.config({ path: './.env' });
+
 import { app } from "./app.js";
 const Port = process.env.PORT;
 import connectDB from "./db/index.js";
+
 
 connectDB()
   .then((result) => {
