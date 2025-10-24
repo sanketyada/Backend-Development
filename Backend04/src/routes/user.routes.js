@@ -1,8 +1,9 @@
 //app.js file se yaha aaye ho ab yaha par apne hisab se multiple rought bana 
 //sakte ho jaise /regitser /login /signup /admin like reactRouter in React
 import {Router} from "express"
-import { registerUser } from "../controllers/user.controller.js";
+import { loginUser, logoutUser, registerUser } from "../controllers/user.controller.js";
 import { upload } from "../middlewares/multer.middlewere.js";
+import { varifyJWT } from "../middlewares/auth.middlewere.js";
 
 const router =  Router()
 
@@ -30,7 +31,10 @@ router.route("/register").post(
   ]),
   registerUser
 );
+router.route("/login").post(loginUser)
 
+
+router.route("/logout").post(varifyJWT,logoutUser)
 
 export default router;
 
