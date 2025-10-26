@@ -32,6 +32,8 @@ const generateAccessAndRefereshTokens = async (userId) => {
     );
   }
 };
+
+//Controller
 const registerUser = asyncHandler(async (req, res) => {
   //1// get user detail from frontend
   //2// validation-not empty
@@ -188,6 +190,7 @@ const loginUser = asyncHandler(async (req, res) => {
       )
     );
 });
+
 const logoutUser = asyncHandler(async (req, res) => {
   //Clean Whole Cokkies
   //clear refreash token fron db
@@ -264,7 +267,111 @@ const refreshAccessTokne = asyncHandler(async (req, res) => {
   }
 });
 
-export { registerUser, loginUser, logoutUser,refreshAccessTokne };
+const changeCurrentPassword = asyncHandler(async(req,res)=>{
+  const {oldPassword,newPassword} = req.body;
+  let user = await User.findById( req.user?._id)
+  const  isPasswordCorrect=await user.isPasswordCorrect(oldPassword,)
+
+  if(!isPasswordCorrect){
+    throw new ApiErrors(400,"OldPassword is Invalid")
+  }
+  
+  user.password = newPassword
+  await user.save({validateBeforeSave:false})
+
+  return res
+  .status(200)
+  .json(new ApiResponse(200,{},"Password Changed successfully"))
+})
+
+const getCurrentUser =asyncHandler(async(req,res)=>{
+  // const user = await User.findById(req.user?._id)
+  // console.log(user)
+  return res
+  .status(200)
+  .json(new ApiResponse(200,req.user,"Current User Fatched successfully"))
+})
+
+const updateAccountDetails  = asyncHandler(async(req,res)=>{
+  const {fullName, email} = req.body;
+  console.log(fullName, email)
+  const user = await User.findByIdAndUpdate(
+    req.user?._id,
+    {
+      $set:{
+        fullName,
+        email
+      }
+    },
+    {new:true}
+  ).select("-password")
+  return res
+  .status(200)
+  .json(new ApiResponse(200,user,"User Details Updated Successfully"))
+})
+
+const updateUserAvater = asyncHandler(async(req,res)=>{
+  // const avaterLoacalPath = req.file?.path
+
+  // if(!avaterLoacalPath){
+  //   throw new ApiErrors("avaterLoacalPath is Not available")
+  // }
+
+  // const avaterCloudnary = await uploadCloudinary(avaterLoacalPath)
+  // if(!avaterCloudnary){
+  //   throw new ApiErrors("Error while Uploading on Cloudnary")
+  // }
+  // const user = await User.findByIdAndUpdate(
+  //   req.user?._id,
+  //   {
+  //     $set:{
+  //       avatar:avaterCloudnary.url
+  //     }
+  //   },
+  //   {new:true}
+  // ).select("-password")
+  // return res
+  // .status(200)
+  // .json(new ApiResponse(200,user,"Avatar Updated Successfully"))
+  console.log(req.user)
+})
+
+
+// const updateUserCoverImage = asyncHandler(async(req,res)=>{
+//   const CoverImageLoacalPath = req.file?.path
+
+//   if(!CoverImageLoacalPath){
+//     throw new ApiErrors("CoverImageLoacalPath is Not available")
+//   }
+
+//   const CoverImageCloudnary = await uploadCloudinary(CoverImageLoacalPath)
+//   if(!CoverImageCloudnary){
+//     throw new ApiErrors("Error while Uploading  CoverImage on Cloudnary")
+//   }
+//   const user = await User.findByIdAndUpdate(
+//     req.user?._id,
+//     {
+//       $set:{
+//         coverImage:CoverImageCloudnary.url
+//       }
+//     },
+//     {new:true}
+//   ).select("-password")
+//   return res
+//   .status(200)
+//   .json(new ApiResponse(200,user,"CoverImage Updated Successfully"))
+
+// })
+
+
+
+
+
+
+
+
+
+export { registerUser, loginUser, logoutUser,refreshAccessTokne,changeCurrentPassword,getCurrentUser,updateAccountDetails,updateUserAvater};
 //Note:accessToken and refreshToken are mostly used for validation or verification
 //so that the user not need to give email password for every time
 //accesstOken => ShortLived ,we not save it in Db

@@ -1,12 +1,20 @@
-//app.js file se yaha aaye ho ab yaha par apne hisab se multiple rought bana 
+//app.js file se yaha aaye ho ab yaha par apne hisab se multiple rought bana
 //sakte ho jaise /regitser /login /signup /admin like reactRouter in React
-import {Router} from "express"
-import { loginUser, logoutUser, refreshAccessTokne, registerUser } from "../controllers/user.controller.js";
+import { Router } from "express";
+import {
+  changeCurrentPassword,
+  getCurrentUser,
+  loginUser,
+  logoutUser,
+  refreshAccessTokne,
+  registerUser,
+  updateAccountDetails,
+  updateUserAvater,
+} from "../controllers/user.controller.js";
 import { upload } from "../middlewares/multer.middlewere.js";
 import { varifyJWT } from "../middlewares/auth.middlewere.js";
 
-const router =  Router()
-
+const router = Router();
 
 //without file handling errror
 // router.route("/register").post(registerUser)
@@ -27,15 +35,19 @@ const router =  Router()
 router.route("/register").post(
   upload.fields([
     { name: "avatar", maxCount: 1 },
-    { name: "coverImage", maxCount: 1 }
+    { name: "coverImage", maxCount: 1 },
   ]),
   registerUser
 );
-router.route("/login").post(loginUser)
+router.route("/login").post(loginUser);
 
 //secured Routes
-router.route("/logout").post(varifyJWT,logoutUser)
-router.route("/refresh-token").post(refreshAccessTokne)
+router.route("/logout").post(varifyJWT, logoutUser);
+router.route("/refresh-token").post(refreshAccessTokne);
+router.route("/changePassword").post(varifyJWT, changeCurrentPassword);
+router.route("/getCurrentUser").post(varifyJWT, getCurrentUser);
+router.route("/updateUser").post(varifyJWT, updateAccountDetails);
+router.route("/updateAvatar").post( varifyJWT, updateUserAvater);
+
 
 export default router;
-
