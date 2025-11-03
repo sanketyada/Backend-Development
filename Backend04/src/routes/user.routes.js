@@ -4,12 +4,15 @@ import { Router } from "express";
 import {
   changeCurrentPassword,
   getCurrentUser,
+  getUserChannelProfile,
+  getWatchHistory,
   loginUser,
   logoutUser,
   refreshAccessTokne,
   registerUser,
   updateAccountDetails,
   updateUserAvater,
+  updateUserCoverImage,
 } from "../controllers/user.controller.js";
 import { upload } from "../middlewares/multer.middlewere.js";
 import { varifyJWT } from "../middlewares/auth.middlewere.js";
@@ -44,10 +47,21 @@ router.route("/login").post(loginUser);
 //secured Routes
 router.route("/logout").post(varifyJWT, logoutUser);
 router.route("/refresh-token").post(refreshAccessTokne);
-router.route("/changePassword").post(varifyJWT, changeCurrentPassword);
-router.route("/getCurrentUser").post(varifyJWT, getCurrentUser);
-router.route("/updateUser").post(varifyJWT, updateAccountDetails);
-router.route("/updateAvatar").post( varifyJWT, updateUserAvater);
+router.route("/change-Password").post(varifyJWT, changeCurrentPassword);
+router.route("/current-user").get(varifyJWT, getCurrentUser);
+router.route("/update-account").patch(varifyJWT, updateAccountDetails);
+router
+  .route("/update-avatar")
+  .patch(varifyJWT, upload.single("avater"), updateUserAvater);
 
-
+router
+  .route("/update-coverImage")
+  .patch(varifyJWT, upload.single("coverImage"), updateUserCoverImage);
+router
+  .route("/c/:username")
+  .get(varifyJWT, getUserChannelProfile);
+router
+  .route("/history")
+  .get(varifyJWT,getWatchHistory );
+  
 export default router;

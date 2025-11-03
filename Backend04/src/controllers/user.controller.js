@@ -4,6 +4,8 @@ import { User } from "../models/user.model.js";
 import { uploadCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
+import { Subscriber } from "../models/subscriber.model.js";
+import mongoose from "mongoose";
 
 const generateAccessAndRefereshTokens = async (userId) => {
   try {
@@ -263,115 +265,246 @@ const refreshAccessTokne = asyncHandler(async (req, res) => {
         )
       );
   } catch (error) {
-    throw new ApiErrors(401,error?.message || "Invalid refresh token")
+    throw new ApiErrors(401, error?.message || "Invalid refresh token");
   }
 });
 
-const changeCurrentPassword = asyncHandler(async(req,res)=>{
-  const {oldPassword,newPassword} = req.body;
-  let user = await User.findById( req.user?._id)
-  const  isPasswordCorrect=await user.isPasswordCorrect(oldPassword,)
+const changeCurrentPassword = asyncHandler(async (req, res) => {
+  const { oldPassword, newPassword } = req.body;
+  let user = await User.findById(req.user?._id);
+  const isPasswordCorrect = await user.isPasswordCorrect(oldPassword);
 
-  if(!isPasswordCorrect){
-    throw new ApiErrors(400,"OldPassword is Invalid")
+  if (!isPasswordCorrect) {
+    throw new ApiErrors(400, "OldPassword is Invalid");
   }
-  
-  user.password = newPassword
-  await user.save({validateBeforeSave:false})
+
+  user.password = newPassword;
+  await user.save({ validateBeforeSave: false });
 
   return res
-  .status(200)
-  .json(new ApiResponse(200,{},"Password Changed successfully"))
-})
+    .status(200)
+    .json(new ApiResponse(200, {}, "Password Changed successfully"));
+});
 
-const getCurrentUser =asyncHandler(async(req,res)=>{
+const getCurrentUser = asyncHandler(async (req, res) => {
   // const user = await User.findById(req.user?._id)
   // console.log(user)
   return res
-  .status(200)
-  .json(new ApiResponse(200,req.user,"Current User Fatched successfully"))
-})
+    .status(200)
+    .json(new ApiResponse(200, req.user, "Current User Fatched successfully"));
+});
 
-const updateAccountDetails  = asyncHandler(async(req,res)=>{
-  const {fullName, email} = req.body;
-  console.log(fullName, email)
+const updateAccountDetails = asyncHandler(async (req, res) => {
+  const { fullName, email } = req.body;
+  console.log(fullName, email);
   const user = await User.findByIdAndUpdate(
     req.user?._id,
     {
-      $set:{
+      $set: {
         fullName,
-        email
-      }
+        email,
+      },
     },
-    {new:true}
-  ).select("-password")
+    { new: true }
+  ).select("-password");
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user, "User Details Updated Successfully"));
+});
+
+const updateUserAvater = asyncHandler(async (req, res) => {
+  const avaterLoacalPath = req.file?.path;
+
+  if (!avaterLoacalPath) {
+    throw new ApiErrors("avaterLoacalPath is Not available");
+  }
+
+  const avaterCloudnary = await uploadCloudinary(avaterLoacalPath);
+  if (!avaterCloudnary) {
+    throw new ApiErrors("Error while Uploading on Cloudnary");
+  }
+  const user = await User.findByIdAndUpdate(
+    req.user?._id,
+    {
+      $set: {
+        avatar: avaterCloudnary.url,
+      },
+    },
+    { new: true }
+  ).select("-password");
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user, "Avatar Updated Successfully"));
+  console.log(req.user);
+});
+const updateUserCoverImage = asyncHandler(async (req, res) => {
+  const CoverImageLoacalPath = req.file?.path;
+
+  if (!CoverImageLoacalPath) {
+    throw new ApiErrors("CoverImageLoacalPath is Not available");
+  }
+
+  const coverImageCloudnary = await uploadCloudinary(CoverImageLoacalPath);
+  if (!coverImageCloudnary) {
+    throw new ApiErrors("Error while Uploading on Cloudnary");
+  }
+  const user = await User.findByIdAndUpdate(
+    req.user?._id,
+    {
+      $set: {
+        coverImage: coverImageCloudnary.url,
+      },
+    },
+    { new: true }
+  ).select("-password");
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user, "CoverImage Updated Successfully"));
+  console.log(req.user);
+});
+
+const getUserChannelProfile = asyncHandler(async (req, res) => {
+  const { username } = req.params;
+
+  if (!username?.trim()) {
+    throw new ApiErrors(400, "Username is Missing.");
+  }
+
+  const channel = await User.aggregate([
+    //Here we find the user from database
+    {
+      $match: {
+        username: username?.toLowerCase(),
+      },
+    },
+    {
+      $lookup: {
+        from: "subscribers", //Subscriber conveted to subscribers for mo0ngodb
+        localField: "_id",
+        foreignField: "channel",
+        as: "subscribers",
+      },
+    },
+    {
+      $lookup: {
+        from: "subscribers", //Subscriber conveted to subscribersfor mongodb
+        localField: "_id",
+        foreignField: "subscriber",
+        as: "subscribedTo",
+      },
+    },
+    {
+      $addFields: {
+        subscribersCount: {
+          $size: "$subscribers",
+        },
+        channelsubscribedToCount: {
+          $size: "$subscribedTo",
+        },
+        isSubscribed: {
+          if: {
+            $in: [req.user?._id, "$subscribers.subscriber"],
+          },
+          then: true,
+          else: false,
+        },
+        // isSubscribed: {
+        //   $cond: {
+        //     if: { $in: [req.user?._id, "$subscribers.subscriber"] },
+        //     then: true,
+        //     else: false,
+        //   },
+        // },
+      },
+    },
+    {
+      $project: {
+        fullName: 1,
+        username: 1,
+        subscribersCount: 1,
+        channelsubscribedToCount: 1,
+        isSubscribed: 1,
+        avatar: 1,
+        coverImage: 1,
+        email: 1,
+      },
+    },
+  ]);
+
+  if (!channel?.length) {
+    throw new ApiErrors(404, "Channel does Not Exist!");
+  }
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(200, channel[0], "User Channel fetched successfully")
+    );
+});
+
+const getWatchHistory = asyncHandler(async (req, res) => {
+  const user = await User.aggregate([
+    {
+      $match: {
+        _id: new mongoose.Types.ObjectId(req.user._id),
+      },
+    },
+    {
+      $lookup: {
+        from: "videos",
+        localField: "watchHistory",
+        foreignField: "_id",
+        as: "watchHistory",
+        pipeline:[
+          {
+            $lookup: {
+              from:"users",
+              localField:"owner",
+              foreignField:"_id",
+              as:"owner",
+              pipeline:[
+                {
+                  $project:{
+                    fullName:1,
+                    username:1,
+                    avatar:1,
+                  }
+                }
+              ]
+            },
+          },
+          {
+            $addFields:{
+              owner:{
+                $first:"$owner"
+              }
+            }
+          }
+        ],
+      },
+    },
+    {},
+  ]);
+
   return res
   .status(200)
-  .json(new ApiResponse(200,user,"User Details Updated Successfully"))
-})
+  .json(
+    new ApiResponse(200,user[0].watchHistory,"WatchHistory Fetched successfully")
+  )
+});
 
-const updateUserAvater = asyncHandler(async(req,res)=>{
-  // const avaterLoacalPath = req.file?.path
-
-  // if(!avaterLoacalPath){
-  //   throw new ApiErrors("avaterLoacalPath is Not available")
-  // }
-
-  // const avaterCloudnary = await uploadCloudinary(avaterLoacalPath)
-  // if(!avaterCloudnary){
-  //   throw new ApiErrors("Error while Uploading on Cloudnary")
-  // }
-  // const user = await User.findByIdAndUpdate(
-  //   req.user?._id,
-  //   {
-  //     $set:{
-  //       avatar:avaterCloudnary.url
-  //     }
-  //   },
-  //   {new:true}
-  // ).select("-password")
-  // return res
-  // .status(200)
-  // .json(new ApiResponse(200,user,"Avatar Updated Successfully"))
-  console.log(req.user)
-})
-
-
-// const updateUserCoverImage = asyncHandler(async(req,res)=>{
-//   const CoverImageLoacalPath = req.file?.path
-
-//   if(!CoverImageLoacalPath){
-//     throw new ApiErrors("CoverImageLoacalPath is Not available")
-//   }
-
-//   const CoverImageCloudnary = await uploadCloudinary(CoverImageLoacalPath)
-//   if(!CoverImageCloudnary){
-//     throw new ApiErrors("Error while Uploading  CoverImage on Cloudnary")
-//   }
-//   const user = await User.findByIdAndUpdate(
-//     req.user?._id,
-//     {
-//       $set:{
-//         coverImage:CoverImageCloudnary.url
-//       }
-//     },
-//     {new:true}
-//   ).select("-password")
-//   return res
-//   .status(200)
-//   .json(new ApiResponse(200,user,"CoverImage Updated Successfully"))
-
-// })
-
-
-
-
-
-
-
-
-
-export { registerUser, loginUser, logoutUser,refreshAccessTokne,changeCurrentPassword,getCurrentUser,updateAccountDetails,updateUserAvater};
+export {
+  registerUser,
+  loginUser,
+  logoutUser,
+  refreshAccessTokne,
+  changeCurrentPassword,
+  getCurrentUser,
+  updateAccountDetails,
+  updateUserAvater,
+  updateUserCoverImage,
+  getUserChannelProfile,
+  getWatchHistory,
+};
 //Note:accessToken and refreshToken are mostly used for validation or verification
 //so that the user not need to give email password for every time
 //accesstOken => ShortLived ,we not save it in Db
