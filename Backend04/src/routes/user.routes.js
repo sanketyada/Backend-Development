@@ -52,7 +52,7 @@ router.route("/current-user").get(varifyJWT, getCurrentUser);
 router.route("/update-account").patch(varifyJWT, updateAccountDetails);
 router
   .route("/update-avatar")
-  .patch(varifyJWT, upload.single("avater"), updateUserAvater);
+  .patch(varifyJWT, upload.single("avatar"), updateUserAvater);
 
 router
   .route("/update-coverImage")
